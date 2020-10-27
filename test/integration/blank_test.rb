@@ -1,11 +1,12 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class FoobarTag < Liquid::Tag
-  def render(*args)
-    " "
+  def render_to_output_buffer(_context, output)
+    output << ' '
+    output
   end
-
-  Liquid::Template.register_tag('foobar', FoobarTag)
 end
 
 class BlankTestFileSystem
@@ -31,7 +32,9 @@ class BlankTest < Minitest::Test
   end
 
   def test_new_tags_are_not_blank_by_default
-    assert_template_result(" " * N, wrap_in_for("{% foobar %}"))
+    with_custom_tag('foobar', FoobarTag) do
+      assert_template_result(" " * N, wrap_in_for("{% foobar %}"))
+    end
   end
 
   def test_loops_are_blank
@@ -93,9 +96,9 @@ class BlankTest < Minitest::Test
 
   def test_include_is_blank
     Liquid::Template.file_system = BlankTestFileSystem.new
-    assert_template_result "foobar" * (N + 1), wrap("{% include 'foobar' %}")
-    assert_template_result " foobar " * (N + 1), wrap("{% include ' foobar ' %}")
-    assert_template_result "   " * (N + 1), wrap(" {% include ' ' %} ")
+    assert_template_result("foobar" * (N + 1), wrap("{% include 'foobar' %}"))
+    assert_template_result(" foobar " * (N + 1), wrap("{% include ' foobar ' %}"))
+    assert_template_result("   " * (N + 1), wrap(" {% include ' ' %} "))
   end
 
   def test_case_is_blank

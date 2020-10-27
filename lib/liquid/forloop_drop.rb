@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 module Liquid
   class ForloopDrop < Drop
     def initialize(name, length, parentloop)
-      @name = name
-      @length = length
+      @name       = name
+      @length     = length
       @parentloop = parentloop
-      @index = 0
+      @index      = 0
     end
 
     attr_reader :name, :length, :parentloop

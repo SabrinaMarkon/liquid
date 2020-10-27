@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Liquid
   module ParserSwitching
     def parse_with_selected_parser(markup)
@@ -6,10 +8,10 @@ module Liquid
       when :lax    then lax_parse(markup)
       when :warn
         begin
-          return strict_parse_with_error_context(markup)
+          strict_parse_with_error_context(markup)
         rescue SyntaxError => e
           parse_context.warnings << e
-          return lax_parse(markup)
+          lax_parse(markup)
         end
       end
     end
@@ -19,7 +21,7 @@ module Liquid
     def strict_parse_with_error_context(markup)
       strict_parse(markup)
     rescue SyntaxError => e
-      e.line_number = line_number
+      e.line_number    = line_number
       e.markup_context = markup_context(markup)
       raise e
     end

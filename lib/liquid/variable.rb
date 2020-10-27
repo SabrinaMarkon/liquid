@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Liquid
   # Holds variables. Variables are only loaded "just in time"
   # and are not evaluated as part of the render stage
@@ -10,10 +12,10 @@ module Liquid
   #   {{ user | link }}
   #
   class Variable
-    FilterMarkupRegex = /#{FilterSeparator}\s*(.*)/om
-    FilterParser = /(?:\s+|#{QuotedFragment}|#{ArgumentSeparator})+/o
-    FilterArgsRegex = /(?:#{FilterArgumentSeparator}|#{ArgumentSeparator})\s*((?:\w+\s*\:\s*)?#{QuotedFragment})/o
-    JustTagAttributes = /\A#{TagAttributes}\z/o
+    FilterMarkupRegex        = /#{FilterSeparator}\s*(.*)/om
+    FilterParser             = /(?:\s+|#{QuotedFragment}|#{ArgumentSeparator})+/o
+    FilterArgsRegex          = /(?:#{FilterArgumentSeparator}|#{ArgumentSeparator})\s*((?:\w+\s*\:\s*)?#{QuotedFragment})/o
+    JustTagAttributes        = /\A#{TagAttributes}\z/o
     MarkupWithQuotedFragment = /(#{QuotedFragment})(.*)/om
 
     attr_accessor :filters, :name, :line_number
@@ -23,10 +25,10 @@ module Liquid
     include ParserSwitching
 
     def initialize(markup, parse_context)
-      @markup  = markup
-      @name    = nil
+      @markup        = markup
+      @name          = nil
       @parse_context = parse_context
-      @line_number = parse_context.line_number
+      @line_number   = parse_context.line_number
 
       parse_with_selected_parser(markup)
     end
@@ -43,11 +45,11 @@ module Liquid
       @filters = []
       return unless markup =~ MarkupWithQuotedFragment
 
-      name_markup = $1
-      filter_markup = $2
-      @name = Expression.parse(name_markup)
+      name_markup   = Regexp.last_match(1)
+      filter_markup = Regexp.last_match(2)
+      @name         = Expression.parse(name_markup)
       if filter_markup =~ FilterMarkupRegex
-        filters = $1.scan(FilterParser)
+        filters = Regexp.last_match(1).scan(FilterParser)
         filters.each do |f|
           next unless f =~ /\w+/
           filtername = Regexp.last_match(0)
@@ -60,6 +62,8 @@ module Liquid
     def strict_parse(markup)
       @filters = []
       p = Parser.new(markup)
+
+      return if p.look(:end_of_string)
 
       @name = Expression.parse(p.expression)
       while p.consume?(:pipe)
@@ -84,21 +88,38 @@ module Liquid
         context.invoke(filter_name, output, *filter_args)
       end
 
-      obj = context.apply_global_filter(obj)
+      context.apply_global_filter(obj)
+    end
 
-      taint_check(context, obj)
+    def render_to_output_buffer(context, output)
+      obj = render(context)
 
-      obj
+      if obj.is_a?(Array)
+        output << obj.join
+      elsif obj.nil?
+      else
+        output << obj.to_s
+      end
+
+      output
+    end
+
+    def disabled?(_context)
+      false
+    end
+
+    def disabled_tags
+      []
     end
 
     private
 
     def parse_filter_expressions(filter_name, unparsed_args)
-      filter_args = []
+      filter_args  = []
       keyword_args = nil
       unparsed_args.each do |a|
-        if matches = a.match(JustTagAttributes)
-          keyword_args ||= {}
+        if (matches = a.match(JustTagAttributes))
+          keyword_args           ||= {}
           keyword_args[matches[1]] = Expression.parse(matches[2])
         else
           filter_args << Expression.parse(a)
@@ -110,7 +131,7 @@ module Liquid
     end
 
     def evaluate_filter_expressions(context, filter_args, filter_kwargs)
-      parsed_args = filter_args.map{ |expr| context.evaluate(expr) }
+      parsed_args = filter_args.map { |expr| context.evaluate(expr) }
       if filter_kwargs
         parsed_kwargs = {}
         filter_kwargs.each do |key, expr|
@@ -119,25 +140,6 @@ module Liquid
         parsed_args << parsed_kwargs
       end
       parsed_args
-    end
-
-    def taint_check(context, obj)
-      return unless obj.tainted?
-      return if Template.taint_mode == :lax
-
-      @markup =~ QuotedFragment
-      name = Regexp.last_match(0)
-
-      error = TaintedError.new("variable '#{name}' is tainted and was not escaped")
-      error.line_number = line_number
-      error.template_name = context.template_name
-
-      case Template.taint_mode
-      when :warn
-        context.warnings << error
-      when :error
-        raise error
-      end
     end
 
     class ParseTreeVisitor < Liquid::ParseTreeVisitor

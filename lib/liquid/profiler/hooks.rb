@@ -1,23 +1,21 @@
+# frozen_string_literal: true
+
 module Liquid
-  class BlockBody
-    def render_node_with_profiling(node, output, context, skip_output = false)
+  module BlockBodyProfilingHook
+    def render_node(context, output, node)
       Profiler.profile_node_render(node) do
-        render_node_without_profiling(node, output, context, skip_output)
+        super
       end
     end
-
-    alias_method :render_node_without_profiling, :render_node_to_output
-    alias_method :render_node_to_output, :render_node_with_profiling
   end
+  BlockBody.prepend(BlockBodyProfilingHook)
 
-  class Include < Tag
-    def render_with_profiling(context)
+  module IncludeProfilingHook
+    def render_to_output_buffer(context, output)
       Profiler.profile_children(context.evaluate(@template_name_expr).to_s) do
-        render_without_profiling(context)
+        super
       end
     end
-
-    alias_method :render_without_profiling, :render
-    alias_method :render, :render_with_profiling
   end
+  Include.prepend(IncludeProfilingHook)
 end

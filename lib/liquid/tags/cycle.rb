@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Liquid
   # Cycle is usually used within a loop to alternate between values, like colors or DOM classes.
   #
@@ -21,28 +23,37 @@ module Liquid
       super
       case markup
       when NamedSyntax
-        @variables = variables_from_string($2)
-        @name = Expression.parse($1)
+        @variables = variables_from_string(Regexp.last_match(2))
+        @name      = Expression.parse(Regexp.last_match(1))
       when SimpleSyntax
         @variables = variables_from_string(markup)
-        @name = @variables.to_s
+        @name      = @variables.to_s
       else
-        raise SyntaxError.new(options[:locale].t("errors.syntax.cycle".freeze))
+        raise SyntaxError, options[:locale].t("errors.syntax.cycle")
       end
     end
 
-    def render(context)
+    def render_to_output_buffer(context, output)
       context.registers[:cycle] ||= {}
 
-      context.stack do
-        key = context.evaluate(@name)
-        iteration = context.registers[:cycle][key].to_i
-        result = context.evaluate(@variables[iteration])
-        iteration += 1
-        iteration  = 0 if iteration >= @variables.size
-        context.registers[:cycle][key] = iteration
-        result
+      key       = context.evaluate(@name)
+      iteration = context.registers[:cycle][key].to_i
+
+      val = context.evaluate(@variables[iteration])
+
+      if val.is_a?(Array)
+        val = val.join
+      elsif !val.is_a?(String)
+        val = val.to_s
       end
+
+      output << val
+
+      iteration += 1
+      iteration = 0 if iteration >= @variables.size
+
+      context.registers[:cycle][key] = iteration
+      output
     end
 
     private
@@ -50,7 +61,7 @@ module Liquid
     def variables_from_string(markup)
       markup.split(',').collect do |var|
         var =~ /\s*(#{QuotedFragment})\s*/o
-        $1 ? Expression.parse($1) : nil
+        Regexp.last_match(1) ? Expression.parse(Regexp.last_match(1)) : nil
       end.compact
     end
 

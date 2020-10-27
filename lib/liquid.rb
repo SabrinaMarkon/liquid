@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Copyright (c) 2005 Tobias Luetke
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -21,10 +23,10 @@
 
 module Liquid
   FilterSeparator             = /\|/
-  ArgumentSeparator           = ','.freeze
-  FilterArgumentSeparator     = ':'.freeze
-  VariableAttributeSeparator  = '.'.freeze
-  WhitespaceControl           = '-'.freeze
+  ArgumentSeparator           = ','
+  FilterArgumentSeparator     = ':'
+  VariableAttributeSeparator  = '.'
+  WhitespaceControl           = '-'
   TagStart                    = /\{\%/
   TagEnd                      = /\%\}/
   VariableSignature           = /\(?[\w\-\.\[\]]\)?/
@@ -55,11 +57,14 @@ require 'liquid/forloop_drop'
 require 'liquid/extensions'
 require 'liquid/errors'
 require 'liquid/interrupts'
-require 'liquid/strainer'
+require 'liquid/strainer_factory'
+require 'liquid/strainer_template'
 require 'liquid/expression'
 require 'liquid/context'
 require 'liquid/parser_switching'
 require 'liquid/tag'
+require 'liquid/tag/disabler'
+require 'liquid/tag/disableable'
 require 'liquid/block'
 require 'liquid/block_body'
 require 'liquid/document'
@@ -74,6 +79,11 @@ require 'liquid/condition'
 require 'liquid/utils'
 require 'liquid/tokenizer'
 require 'liquid/parse_context'
+require 'liquid/partial_cache'
+require 'liquid/usage'
+require 'liquid/register'
+require 'liquid/static_registers'
+require 'liquid/template_factory'
 
 # Load all the tags of the standard library
 #
